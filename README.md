@@ -143,3 +143,5 @@ A: 分类报告使用UTF-8编码，在Windows记事本中可能会显示乱码�
 
 ### Q: 如何添加新的分类规则？
 A: 可以直接编辑 `classify_files.py` 文件中的 `FILE_CATEGORIES` 和 `SUBCATEGORIES` 字典来添加新的分类规则。
+
+### Q: 如果有其他反馈信息 ,请在评论区留言
