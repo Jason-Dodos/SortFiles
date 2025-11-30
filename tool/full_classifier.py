@@ -1,0 +1,186 @@
+import os
+import shutil
+from pathlib import Path
+
+# 定义分类规则
+CATEGORIES = {
+    '文档资料': ['.doc', '.docx', '.pdf', '.txt', '.rtf', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods', '.odp'],
+    '图片素材': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.svg', '.webp', '.ico'],
+    '视频资料': ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v'],
+    '音频资料': ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.wma', '.m4a'],
+    '压缩文件': ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2'],
+    '程序软件': ['.exe', '.msi', '.bat', '.cmd', '.sh'],
+    '代码文件': ['.py', '.java', '.cpp', '.c', '.js', '.html', '.css', '.php', '.sql', '.xml', '.json'],
+    '数据文件': ['.csv', '.dat', '.db', '.sqlite', '.mdb', '.json', '.xml']
+}
+
+# 子分类规则
+SUBCATEGORIES = {
+    '图片素材': {
+        'JPEG': ['.jpg', '.jpeg'],
+        'PNG': ['.png'],
+        'GIF': ['.gif'],
+        'BMP': ['.bmp'],
+        'TIFF': ['.tiff'],
+        'SVG': ['.svg'],
+        'WEBP': ['.webp'],
+        'ICO': ['.ico']
+    },
+    '文档资料': {
+        'Word文档': ['.doc', '.docx'],
+        'PDF文档': ['.pdf'],
+        '文本文件': ['.txt', '.rtf'],
+        '表格文档': ['.xls', '.xlsx', '.ods'],
+        '演示文档': ['.ppt', '.pptx', '.odp']
+    },
+    '视频资料': {
+        'MP4视频': ['.mp4'],
+        'AVI视频': ['.avi'],
+        'MKV视频': ['.mkv'],
+        'MOV视频': ['.mov'],
+        '其他视频': ['.wmv', '.flv', '.webm', '.m4v']
+    },
+    '音频资料': {
+        'MP3音频': ['.mp3'],
+        'WAV音频': ['.wav'],
+        'FLAC音频': ['.flac'],
+        'AAC音频': ['.aac'],
+        '其他音频': ['.ogg', '.wma', '.m4a']
+    },
+    '压缩文件': {
+        'ZIP压缩': ['.zip'],
+        'RAR压缩': ['.rar'],
+        '7Z压缩': ['.7z'],
+        'TAR压缩': ['.tar'],
+        '其他压缩': ['.gz', '.bz2']
+    },
+    '程序软件': {
+        '可执行程序': ['.exe'],
+        '安装包': ['.msi'],
+        '批处理脚本': ['.bat', '.cmd'],
+        'Shell脚本': ['.sh']
+    },
+    '代码文件': {
+        'Python代码': ['.py'],
+        'Java代码': ['.java'],
+        'C/C++代码': ['.cpp', '.c'],
+        '前端代码': ['.js', '.html', '.css'],
+        '后端代码': ['.php', '.sql'],
+        '配置文件': ['.xml', '.json']
+    },
+    '数据文件': {
+        'CSV数据': ['.csv'],
+        '数据库文件': ['.db', '.sqlite', '.mdb'],
+        '其他数据': ['.dat', '.json', '.xml']
+    }
+}
+
+def get_category_by_extension(extension):
+    """根据文件扩展名确定分类"""
+    for category, extensions in CATEGORIES.items():
+        if extension.lower() in extensions:
+            return category
+    return '其他文件'
+
+def get_subcategory_by_extension(category, extension):
+    """根据文件扩展名确定子分类"""
+    if category in SUBCATEGORIES:
+        for subcategory, extensions in SUBCATEGORIES[category].items():
+            if extension.lower() in extensions:
+                return subcategory
+    return None
+
+def classify_all_files(source_base_dir, target_base_dir):
+    """对指定目录中的所有文件进行分类"""
+    # 确保目标基础目录存在
+    os.makedirs(target_base_dir, exist_ok=True)
+    
+    # 创建分类目录
+    for category in CATEGORIES.keys():
+        category_dir = os.path.join(target_base_dir, category)
+        os.makedirs(category_dir, exist_ok=True)
+    
+    # 确保"其他文件"目录也存在
+    os.makedirs(os.path.join(target_base_dir, '其他文件'), exist_ok=True)
+    
+    # 统计信息
+    classified_count = 0
+    skipped_count = 0
+    
+    # 获取所有recup_dir目录
+    recup_dirs = [d for d in os.listdir(source_base_dir) if d.startswith('recup_dir') and 
+                  os.path.isdir(os.path.join(source_base_dir, d))]
+    
+    print(f"找到 {len(recup_dirs)} 个recup_dir目录")
+    
+    # 遍历所有recup_dir目录
+    for recup_dir in recup_dirs:
+        source_dir = os.path.join(source_base_dir, recup_dir)
+        print(f"正在处理目录: {source_dir}")
+        
+        # 遍历源目录中的所有文件
+        try:
+            for filename in os.listdir(source_dir):
+                file_path = os.path.join(source_dir, filename)
+                
+                # 只处理文件，跳过目录
+                if os.path.isfile(file_path):
+                    # 获取文件扩展名
+                    _, extension = os.path.splitext(filename)
+                    
+                    # 确定文件分类
+                    category = get_category_by_extension(extension)
+                    
+                    # 确定子分类
+                    subcategory = get_subcategory_by_extension(category, extension)
+                    
+                    # 确定目标目录
+                    if subcategory:
+                        target_dir = os.path.join(target_base_dir, category, subcategory)
+                    else:
+                        target_dir = os.path.join(target_base_dir, category)
+                    
+                    # 确保目标目录存在
+                    os.makedirs(target_dir, exist_ok=True)
+                    
+                    # 处理同名文件
+                    target_file_path = os.path.join(target_dir, filename)
+                    counter = 1
+                    base_name, ext = os.path.splitext(filename)
+                    while os.path.exists(target_file_path):
+                        new_filename = f"{base_name}_{counter}{ext}"
+                        target_file_path = os.path.join(target_dir, new_filename)
+                        counter += 1
+                    
+                    # 移动文件
+                    try:
+                        shutil.move(file_path, target_file_path)
+                        if subcategory:
+                            print(f"已移动: {filename} -> {category}/{subcategory}")
+                        else:
+                            print(f"已移动: {filename} -> {category}")
+                        classified_count += 1
+                    except Exception as e:
+                        print(f"移动文件 {filename} 失败: {e}")
+                        skipped_count += 1
+                else:
+                    print(f"跳过目录: {filename}")
+                    skipped_count += 1
+        except Exception as e:
+            print(f"处理目录 {recup_dir} 时出错: {e}")
+            skipped_count += 1
+    
+    # 输出统计信息
+    print(f"\n分类完成!")
+    print(f"已分类文件数: {classified_count}")
+    print(f"跳过项目数: {skipped_count}")
+
+if __name__ == "__main__":
+    # 定义要处理的源目录基础路径
+    source_base_directory = r'E:\recvr'
+    
+    # 定义目标基础目录
+    target_directory = r'E:\recvr\分类'
+    
+    # 执行分类
+    classify_all_files(source_base_directory, target_directory)
